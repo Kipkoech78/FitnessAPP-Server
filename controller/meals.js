@@ -1,4 +1,6 @@
+// const { set } = require('mongoose')
 const Meal= require('../models/MEalModel')
+const shownMeal = new Set();
 const addMeal = async (req,res) =>{
     try{
         const { name, category,calories, protein,carbs,fat,goal } = req.body
@@ -104,7 +106,44 @@ const EditMeal = async(req, res) =>{
     }
 }
 
+const getRandomMeal = async (req, res) =>{
+   try{
+    const totalFood = await Meal.countDocuments();
+    if (shownMeal.size >= totalFood){
+        shownMeal.clear()
+    }
+    const categories = ["breakfast", "lunch", "AfterNoonSnack","dinner"]
+    let meals = []
+    for (let category of categories){
+        let food;
+        do{
+            food = await Meal.aggregate([
+                {$match:{ category}},
+                {$sample:{size: 1}}
+            ])
+        }while(food.length > 0 && shownMeal.has(food[0]._id.toString()))
+            if(food.length >0){
+                shownMeal.add(food[0]._id.toString());
+                meals.push(food[0])
+            }
+    }
+    res.json({
+        success:true,
+        message:"Random meal fetched successfuly.",
+        data: meals
+    })
+
+
+   }catch(err){
+    console.log(err)
+    res.json({
+        success:false,
+        message:"error geting random meal"
+    })
+   }
+}
 
 
 
-module.exports = {addMeal, deleteMeal , fectchAllMeals, EditMeal}
+
+module.exports = {addMeal, deleteMeal , fectchAllMeals, EditMeal,getRandomMeal}
